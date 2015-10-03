@@ -28,11 +28,6 @@ class Api
 	 * @var integer
 	 */
 	protected $timeout;
-
-	/**
-	 * @var bool
-	 */
-	protected $compression;
 	
 	/**
 	 * enable test mode
@@ -51,7 +46,6 @@ class Api
 			'encoding' => 'UTF8',
 			'retry_count' => 4,
 			'timeout' => null,
-			'compression' => false,
 			'test_mode' => false,
 		], $config); 
 		
@@ -59,7 +53,6 @@ class Api
 		$this->encoding = $config['encoding'];
 		$this->retryCount = $config['retry_count'];
 		$this->timeout = $config['timeout'];
-		$this->compression = $config['compression'];
 		$this->testMode = $config['test_mode'];
 	}
 
