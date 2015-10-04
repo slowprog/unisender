@@ -28,6 +28,11 @@ class Api
 	 * @var integer
 	 */
 	protected $timeout;
+
+	/**
+	 * @var bool
+	 */
+	protected $compression;
 	
 	/**
 	 * enable test mode
@@ -46,6 +51,7 @@ class Api
 			'encoding' => 'UTF8',
 			'retry_count' => 4,
 			'timeout' => null,
+			'compression' => false,
 			'test_mode' => false,
 		], $config); 
 		
@@ -53,6 +59,7 @@ class Api
 		$this->encoding = $config['encoding'];
 		$this->retryCount = $config['retry_count'];
 		$this->timeout = $config['timeout'];
+		$this->compression = $config['compression'];
 		$this->testMode = $config['test_mode'];
 	}
 
@@ -104,7 +111,7 @@ class Api
 	 * @param array $params
 	 * @return array
 	 */
-	protected function callMethod($methodName, $params = array())
+	protected function callMethod($methodName, $params = [])
 	{
 		if ($this->encoding != 'UTF8') {
 			if (function_exists('iconv')) {
@@ -114,28 +121,36 @@ class Api
 			}
 		}
 
-		$params['api_key'] = $this->apiKey;
-		$body = http_build_query($params);
+		$url = $methodName . '?format=json';
 
-		$getParams = http_build_query([
-			'format' => 'json',
-			'test_mode' => (int)$this->testMode
-		]);
+		if ($this->compression) {
+			$Url .= '&api_key=' . $this->apiKey . '&request_compression=bzip2';
+			$content = bzcompress(http_build_query($params));
+		} else {
+			$params = array_merge((array)$params, ['api_key' => $this->apiKey]);
+			$content = http_build_query($params);
+		}
 
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_POST, 1);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
-		curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout ?: 10);
+		$contextOptions = [
+			'http' => [
+				'method'  => 'POST',
+				'header'  => 'Content-type: application/x-www-form-urlencoded',
+				'content' => $content,
+			]
+		];
+
+		if ($this->timeout) {
+			$contextOptions['http']['timeout'] = $this->timeout;
+		}
 
 		$retryCount = 0;
+		$context = stream_context_create($contextOptions);
+
 		do {
-			curl_setopt($ch, CURLOPT_URL, $this->getApiHost($retryCount) . $methodName . '?' . $getParams);
-			$result = curl_exec($ch);
+			$host = $this->getApiHost($retryCount);
+			$result = file_get_contents($host . $url, false, $context);
 			$retryCount++;
 		} while ($result === false && $retryCount < $this->retryCount);
-
-		curl_close($ch);
 
 		return $result !== false ? json_decode($result, true) : null;
 	}
