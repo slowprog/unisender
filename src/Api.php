@@ -92,14 +92,15 @@ class Api
 	{
 		$params['list_ids'] = $listIds;
 
-		if (is_array($fields))
-			if (!isset($fields['email']) && !isset($fields['phone']))
-				throw new \Exception('email or phone keys are required in array $fields');
-		else
-			if ($fields)
-				$fields['email'] = $fields;
-			else
-				throw new \Exception('email keys are required in $fields like a string');
+		if (is_array($fields)) {
+		    if (!isset($fields['email']) && !isset($fields['phone']))
+			throw new \Exception('email or phone keys are required in array $fields');
+		} else {
+		    if ($fields)
+			$fields['email'] = $fields;
+		    else
+			throw new \Exception('email keys are required in $fields like a string');
+		}
 
 		$params['fields'] = $fields;
 
